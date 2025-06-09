@@ -55,10 +55,11 @@ The main difference here is that all the parsing logic is separated from the dat
 Currently supported data sources:  
 1. live - reads the LSASS porcess' memory directly  
 2. minidump - processes a minidump file created by dumping the LSASS process 
-3. rekall (volatility fork) - processes basically ANY windows memory dumps that rekall can parse 
-4. pcileech - not supported anymore
-5. remote - this is another project. TBD :)
-6. `your project here` seriously, it's super-simple to integrate.
+3. volatility3 - processes basically ANY windows memory dumps that volatility3 can parse 
+4. rekall (volatility fork) - rekall project is defunct, volatility3 is a better bet
+5. pcileech - not supported anymore
+6. remote - this is another project. TBD :)
+7. `your project here` seriously, it's super-simple to integrate.
 
 ### Registry processing
 Parses the registry hives to obtain stroed credentials, like NT and LM hashes, domain cached credentials (DCC/DCC2) and LSA secrets.
@@ -86,32 +87,20 @@ This is just a basic stuff really. Reson is there that I hate to constanly use p
 ### other stuff
 yeah... check the code. it has comments and stuff...  
 
-### Rekall command options 
-#### Timestamp override
-Reason for this parameter to exist: In order to choose the correct structure for parsing we need the timestamp info of the msv dll file. Rekall sadly doesnt always have this info for some reason, therefore the parsing may be failing.  
-If the parsing is failing this could solve the issue.  
-  
-Parameter: ```-t```  
-Values: ```0``` or ```1```  
-Example:  
-```
-pypykatz.py rekall <momeory_dump_file> -t 0
-```  
+## Volatility3 usage
+There are two ways to use volatility3-based memory parsing.  
 
-## Rekall usage
-There are two ways to use rekall-based memory parsing.  
-### Via the ```pypykatz rekall``` command
-You will need to specify the memory file to parse.  
+### Via the ```pypykatz lsa volatility3``` command
+You will need to specify the memory file to parse.
   
-### Via rekall command line
-IMPORTANT NOTICES: 
-1. If you are just now deciding to install ```rekall``` please note: it MUST be run in a virtualenv, and you will need to install pypykatz in the same virtualenv!  
-2. rekall command line is not suitable to show all information acquired from the memory, you should use the ```out_file``` and ```kerberos_dir``` command switches!     
+### Via Volatility3 CLI
+IMPORTANT NOTICE: The vol.py command line is not suitable to show all information acquired from the memory, you should use the ```output``` and ```kerberos_dir``` command switches!
    
-You can find a rekall plugin file named ```pypykatz_rekall.py``` in the ```plugins``` folder of pypykatz.  
-You will need to copy it in rekall's ```plugins/windows``` folder, and rename it to ```pypykatz.py```.  
-After this modify the ```__init__.py``` file located the same folder and add the following line at the end: ```from rekall.plugins.windows import pypykatz```  
-If everything is okay you can use the ```pypykatz``` command from the ```rekall``` command line directly.
+You can find a volatility3 plugin file named ```pypykatz_volatility3.py``` in the ```plugins``` folder of pypykatz. The plugin can be run as follows:
+
+```
+vol.py -f memory.dump -p <pypykatz_plugin_dir> pypykatz.plugins.pypykatz_volatility3.pypykatz [--json] [--grep] [--output credentials.out] [--kerberos-dir ccache_dir]
+```
 
 # HELP WANTED
 If you want to help me getting this project into a stable release you can send mindiumps of the lsass.exe process to the following link: https://nx5494.your-storageshare.de/s/SJteWj3PPbg8jBA

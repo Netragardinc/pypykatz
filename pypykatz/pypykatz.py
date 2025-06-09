@@ -8,6 +8,7 @@ import platform
 import json
 import traceback
 import base64
+import os
 
 from pypykatz.commons.common import KatzSystemInfo
 from pypykatz.lsadecryptor import CredmanTemplate, MsvTemplate, \
@@ -24,6 +25,12 @@ from minidump.minidumpfile import MinidumpFile
 from minikerberos.common.ccache import CCACHE
 from minikerberos.common.kirbi import Kirbi
 from pypykatz._version import __version__
+from pypykatz.plugins.pypykatz_volatility3 import pypykatz as vol_pypykatz
+
+import volatility3
+from volatility3 import framework
+from volatility3.framework import contexts, automagic, interfaces, plugins
+from volatility3.cli import CommandLine
 
 class pypykatz:
 	def __init__(self, reader, sysinfo):
@@ -222,13 +229,29 @@ class pypykatz:
 		return mimi
 
 	@staticmethod
-	def go_volatility3(vol3_obj, framework_version = 2, packages = ['all']):
-		from pypykatz.commons.readers.volatility3.volreader import Vol3Reader, vol3_treegrid
-		reader = Vol3Reader(vol3_obj, framework_version)
-		sysinfo = reader.get_sysinfo()
-		mimi = pypykatz(reader, sysinfo)
+	def parse_memory_dump_volatility3(filename, framework_version = 2, packages = ['all']):
+		framework.require_interface_version(framework_version, 0, 0)
+		framework.import_files(volatility3.plugins, True)
+		ctx = contexts.Context()
+		config_path = interfaces.configuration.path_join('plugins', vol_pypykatz.__class__.__name__)
+		ctx.config['automagic.LayerStacker.single_location'] = 'file://' + filename
+		automagics = automagic.choose_automagic(automagic.available(ctx), vol_pypykatz)
+		automagic.run(automagics, ctx, vol_pypykatz, config_path)
+		plugin = plugins.construct_plugin(ctx, automagics, vol_pypykatz, config_path, None, None)
+
+		from pypykatz.commons.readers.volatility3.volreader import Vol3Reader
+		reader = Vol3Reader(plugin, framework_version)
+		mimi = pypykatz(reader, reader.get_sysinfo())
 		mimi.start(packages)
-		return vol3_treegrid(mimi)
+		return mimi
+	
+	@staticmethod
+	def go_volatility3(vol3_obj, framework_version = 2, packages = ['all']):
+		from pypykatz.commons.readers.volatility3.volreader import Vol3Reader
+		reader = Vol3Reader(vol3_obj, framework_version)
+		mimi = pypykatz(reader, reader.get_sysinfo())
+		mimi.start(packages)
+		return mimi
 
 		
 	def log_basic_info(self):
@@ -410,6 +433,3 @@ class pypykatz:
 				self.get_livessp()
 			except Exception as e:
 				self.errors.append(('livessp', e))
-
-		
-

@@ -36,7 +36,7 @@ class LSACMDHelper:
 
 
 		group = parser.add_parser('lsa', help='Get secrets from memory dump')
-		group.add_argument('cmd', choices=['minidump','rekall','info', 'zipdump'])
+		group.add_argument('cmd', choices=['minidump','rekall','info', 'zipdump','volatility3'])
 		group.add_argument('memoryfile', help='path to the dump file')
 		group.add_argument('-t','--timestamp_override', type=int, help='enforces msv timestamp override (0=normal, 1=anti_mimikatz)')
 		group.add_argument('--json', action='store_true',help = 'Print credentials in JSON format')
@@ -212,6 +212,10 @@ class LSACMDHelper:
 			mimi = pypykatz.parse_memory_dump_rekall(args.memoryfile, args.timestamp_override, packages=args.packages)
 			results['rekall'] = mimi
 		
+		elif args.cmd == 'volatility3':
+			mimi = pypykatz.parse_memory_dump_volatility3(args.memoryfile, 2, args.packages)
+			results['volatility3'] = mimi
+
 		elif args.cmd == 'info':
 			if args.directory:
 				dir_fullpath = os.path.abspath(args.memoryfile)
