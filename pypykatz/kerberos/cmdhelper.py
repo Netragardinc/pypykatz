@@ -111,6 +111,7 @@ class KerberosCMDHelper:
 
 		kirbi_list = kerberos_kirbi_subparsers.add_parser('parse', help = 'Parse kirbi file and show the ticket')
 		kirbi_list.add_argument('kirbifile', help='path to kirbi file')
+		kirbi_list.add_argument('--json', action='store_true', help='Output in JSON format')
 
 
 		kerberos_group = parser.add_parser('kerberos', help='Kerberos related commands')
@@ -362,7 +363,7 @@ class KerberosCMDHelper:
 		
 		elif args.kerberos_module == 'kirbi':
 			if args.kirbi_module == 'parse':
-				parse_kirbi(args.kirbifile)
+				parse_kirbi(args.kirbifile, args.json)
 
 
 def get_ldap_url(authmethod = 'ntlm', host = None):
