@@ -95,6 +95,7 @@ class KerberosTicket:
 		t['KeyType'] = self.KeyType
 		t['Key'] = self.Key
 		t['Filename'] = self.generate_filename()
+		t['Flags'] = list(map(str, core.IntegerBitString(self.TicketFlags).cast(TicketFlags).native))
 		
 		return t
 		

@@ -32,7 +32,7 @@ def describe_kirbi_data(data):
 			username = '/'.join(username['name-string'])
 		flags = cred.get('flags')
 		if flags is not None:
-			flags = ', '.join(flags)
+			flags = ', '.join(map(str, flags))
 
 		t += 'UserName     : %s\r\n' % username
 		t += 'UserRealm    : %s\r\n' % cred.get('prealm')
