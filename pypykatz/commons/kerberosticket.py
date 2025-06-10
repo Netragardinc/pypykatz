@@ -94,6 +94,7 @@ class KerberosTicket:
 		t['RenewUntil'] = self.RenewUntil
 		t['KeyType'] = self.KeyType
 		t['Key'] = self.Key
+		t['Filename'] = self.generate_filename()
 		
 		return t
 		
