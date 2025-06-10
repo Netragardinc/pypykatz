@@ -159,11 +159,14 @@ class LSACMDHelper:
 		
 		if args.kerberos_dir:
 			dir = os.path.abspath(args.kerberos_dir)
+			if not os.path.isdir(dir):
+				os.makedirs(dir)
 			logger.info('Writing kerberos tickets to %s' % dir)
 			for filename in results:
 				base_filename = ntpath.basename(filename)
 				ccache_filename = '%s_%s.ccache' % (base_filename, os.urandom(4).hex()) #to avoid collisions
-				results[filename].kerberos_ccache.to_file(os.path.join(dir, ccache_filename))
+				if len(results[filename].kerberos_ccache.credentials) > 0:
+					results[filename].kerberos_ccache.to_file(os.path.join(dir, ccache_filename))
 				for luid in results[filename].logon_sessions:
 					for kcred in results[filename].logon_sessions[luid].kerberos_creds:
 						for ticket in kcred.tickets:

@@ -93,9 +93,12 @@ class pypykatz(interfaces.plugins.PluginInterface):
         kerberos_dir = self.config.get("kerberos_dir", None)
         if kerberos_dir:
             directory = os.path.abspath(kerberos_dir)
+            if not os.path.isdir(directory):
+                os.makedirs(directory)
             base_filename = ntpath.basename('rekall_memory')
             ccache_filename = '%s_%s.ccache' % (base_filename, os.urandom(4).hex()) #to avoid collisions
-            mimi.kerberos_ccache.to_file(os.path.join(directory, ccache_filename))
+            if len(mimi.kerberos_ccache.credentials) > 0:
+                mimi.kerberos_ccache.to_file(os.path.join(directory, ccache_filename))
             for luid in mimi.logon_sessions:
                 for kcred in mimi.logon_sessions[luid].kerberos_creds:
                     for ticket in kcred.tickets:
