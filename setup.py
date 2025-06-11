@@ -11,12 +11,6 @@ if mo:
 else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
-ep = {
-	'console_scripts': [
-			'pypykatz = pypykatz.__main__:main',
-		],
-	}
-
 setup(
 	# Application name:
 	name="pypykatz",
@@ -59,13 +53,13 @@ setup(
 		'winacl>=0.1.9,<=0.2.0',
 		'aiosmb>=0.4.8,<=0.5.0',
 		'aesedb>=0.1.4,<=0.2.0',
-		'tqdm', 
+		'tqdm',
+        'volatility3>=2.26.0'
 	],
 	
-	# No more conveinent .exe entry point thanks to some idiot who 
-	# used the code without modification in a state-backed trojan.
-	# Thank you for runing it for everyone.
-	# 
-	# 
-	entry_points=ep if platform.system().lower() != 'windows' else {}
+	entry_points={
+		'console_scripts': [
+			'pypykatz = pypykatz.__main__:main',
+		],
+	}
 )
