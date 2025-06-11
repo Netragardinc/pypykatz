@@ -230,6 +230,7 @@ class pypykatz:
 
 	@staticmethod
 	def parse_memory_dump_volatility3(filename, framework_version = 2, packages = ['all']):
+		filename = os.path.abspath(filename)
 		framework.require_interface_version(framework_version, 0, 0)
 		framework.import_files(volatility3.plugins, True)
 		ctx = contexts.Context()
