@@ -16,7 +16,7 @@ from pypykatz.pypykatz import pypykatz
 from pypykatz.commons.common import UniversalEncoder
 from pypykatz.lsadecryptor.packages.msv.decryptor import LogonSession
 from minidump.minidumpfile import MinidumpFile
-from pypykatz.commons.common import KatzSystemInfo
+from pypykatz.commons.common import KatzSystemInfo, deduplicate_lists
 
 
 class LSACMDHelper:
@@ -27,6 +27,7 @@ class LSACMDHelper:
 	def add_args(self, parser, live_parser):
 		live_group = live_parser.add_parser('lsa', help='Get all secrets from LSASS')
 		live_group.add_argument('--json', action='store_true',help = 'Print credentials in JSON format')
+		live_group.add_argument('--json-short', action='store_true',help = 'Print credentials in abbreviated JSON format')
 		live_group.add_argument('-e','--halt-on-error', action='store_true',help = 'Stops parsing when a file cannot be parsed')
 		live_group.add_argument('-o', '--outfile', help = 'Save results to file (you can specify --json for json file, or text format will be written)')
 		live_group.add_argument('-k', '--kerberos-dir', help = 'Save kerberos tickets to a directory.')
@@ -40,6 +41,7 @@ class LSACMDHelper:
 		group.add_argument('memoryfile', help='path to the dump file')
 		group.add_argument('-t','--timestamp_override', type=int, help='enforces msv timestamp override (0=normal, 1=anti_mimikatz)')
 		group.add_argument('--json', action='store_true',help = 'Print credentials in JSON format')
+		group.add_argument('--json-short', action='store_true',help = 'Print credentials in abbreviated JSON format')
 		group.add_argument('-e','--halt-on-error', action='store_true',help = 'Stops parsing when a file cannot be parsed')
 		group.add_argument('-o', '--outfile', help = 'Save results to file (you can specify --json for json file, or text format will be written)')
 		group.add_argument('-k', '--kerberos-dir', help = 'Save kerberos tickets to a directory.')
@@ -89,44 +91,49 @@ class LSACMDHelper:
 		elif args.json:
 			print(json.dumps(results, cls = UniversalEncoder, indent=4, sort_keys=True))
 		
-		elif args.grep:
-			if hasattr(args, 'directory') and args.directory is not None:
-				print(':'.join(['filename'] + LogonSession.grep_header))
-			else:
-				print(':'.join(LogonSession.grep_header))
+		elif args.grep or args.json_short:
+			all_items = {}
 			for result in results:
+				items = []
 				for luid in results[result].logon_sessions:
-					for row in results[result].logon_sessions[luid].to_grep_rows():
-						if hasattr(args, 'directory') and args.directory is not None:
-							row = [result] + row
-						print(':'.join(row))
+					items += results[result].logon_sessions[luid].to_grep_rows()
 				for cred in results[result].orphaned_creds:
 					t = cred.to_dict()
 					if t['credtype'] == 'cloudap':
-						x = [str(t['credtype']), '', '', '', '', '', str(cred.get_masterkey_hex()), str(t['dpapi_key_sha1']), str(t['key_guid']), t['PRT']]
-						if hasattr(args, 'directory') and args.directory is not None:
-							x = [result] + x
-						print(':'.join(x))
+						items.append([str(t['credtype']), '', '', '', '', '', str(cred.get_masterkey_hex()), str(t['dpapi_key_sha1']), str(t['key_guid']), t['PRT']])
 					elif t['credtype'] != 'dpapi':
 						if t.get('password', None) is not None and t['password'] is not None:
-							x =  [str(t['credtype']), str(t['domainname']), str(t['username']), '', '', '', '', '', str(t['password'])]
-							if hasattr(args, 'directory') and args.directory is not None:
-								x = [result] + x
-							print(':'.join(x))
+							items.append( [str(t['credtype']), str(t['domainname']), str(t['username']), '', '', '', '', '', str(t['password'])])
 					else:
 						t = cred.to_dict()
-						x = [str(t['credtype']), '', '', '', '', '', str(t['masterkey']), str(t['sha1_masterkey']), str(t['key_guid']), '']
-						if hasattr(args, 'directory') and args.directory is not None:
-							x = [result] + x
-						print(':'.join(x))
+						items.append([str(t['credtype']), '', '', '', '', '', str(t['masterkey']), str(t['sha1_masterkey']), str(t['key_guid']), ''])
 				
 				for pkg, err in results[result].errors:
 					err_str = str(err) +'\r\n' + '\r\n'.join(traceback.format_tb(err.__traceback__))
 					err_str = base64.b64encode(err_str.encode()).decode()
-					x =  [pkg+'_exception_please_report', '', '', '', '', '', '', '', '', err_str]
-					if hasattr(args, 'directory') and args.directory is not None:
-						x = [result] + x
-					print(':'.join(x) + '\r\n')
+					items.append( [pkg+'_exception_please_report', '', '', '', '', '', '', '', '', err_str])
+
+				# Deduplicate and sort items by package
+				items = sorted(deduplicate_lists(items), key=lambda x: x[0])
+				all_items[result] = items
+
+			if args.grep:
+				if args.directory:
+					LogonSession.grep_header.insert(0, 'filename')
+				print(':'.join(LogonSession.grep_header))
+				for result, items in all_items.items():
+					for item in items:
+						print(':'.join([result] + item if args.directory else item))
+				print("\r\n")
+			elif args.json_short:
+				for result, items in all_items.items():
+					for i, item in enumerate(items):
+						items[i] = dict(zip(LogonSession.grep_header, item))
+				if args.directory:
+					print(json.dumps(all_items, indent=4))
+				else:
+					print(json.dumps(next(iter(all_items.values())), indent=4))
+
 		else:
 			for result in results:
 				print('FILE: ======== %s =======' % result)	

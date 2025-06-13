@@ -510,3 +510,17 @@ def base64_decode_url(value: str, bytes_expected=False) -> str:
 	if bytes_expected is True:
 		return result
 	return result.decode()
+
+def deduplicate_lists(list_of_lists):
+    """
+    Removes duplicate lists from a list of lists.
+    Only works for lists with hashable elements.
+    """
+    seen = set()
+    unique = []
+    for lst in list_of_lists:
+        t = tuple(lst)
+        if t not in seen:
+            seen.add(t)
+            unique.append(lst)
+    return unique
